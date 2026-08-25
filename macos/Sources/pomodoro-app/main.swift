@@ -1,0 +1,3 @@
+import PomodoroCore
+
+AppEntry.launch()

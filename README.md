@@ -70,6 +70,16 @@ bundle if it fails.
 swift build -c release && ./.build/release/pomodoro-selfcheck
 ```
 
+The window material can be swapped without rebuilding, to taste:
+
+```sh
+defaults write studio.visionlab.pomodorotimer debug.windowMaterial -int 7   # sidebar
+defaults delete studio.visionlab.pomodorotimer debug.windowMaterial        # back to default
+```
+
+21 = `underWindowBackground` (default), 7 = `sidebar`, 13 = `hudWindow`, 12 = `windowBackground`,
+10 = `headerView`, 6 = `popover`. Restart the app after changing it.
+
 For manual testing, `scripts/debug_defaults.sh` reinterprets the duration settings as *seconds*
 and lowers the idle thresholds, so a full cycle takes under a minute:
 

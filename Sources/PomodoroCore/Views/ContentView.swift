@@ -14,7 +14,7 @@ struct ContentView: View {
         VStack(spacing: 16) {
             Picker("", selection: phaseBinding) {
                 ForEach(TimerPhase.allCases) { phase in
-                    Label(phase.title, systemImage: phase.symbolName).tag(phase)
+                    Text(phase.pickerLabel).tag(phase)
                 }
             }
             .pickerStyle(.segmented)
@@ -62,7 +62,15 @@ struct ContentView: View {
         }
         .frame(minWidth: 480, idealWidth: 720, maxWidth: .infinity,
                minHeight: 420, idealHeight: 560, maxHeight: .infinity)
-        .background(VisualEffectBackground())
+        .background {
+            // Order matters: the translucency helper clears the window's own opaque
+            // background so the material below it has something to blur.
+            ZStack {
+                VisualEffectBackground(material: SettingsStore.windowMaterial(), blending: .behindWindow)
+                WindowTranslucency()
+            }
+            .ignoresSafeArea()
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {

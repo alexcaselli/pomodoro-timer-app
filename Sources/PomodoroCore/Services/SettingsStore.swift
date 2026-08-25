@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 /// Port of the Windows `ApplicationData.Current.LocalSettings` composite.
@@ -93,6 +94,18 @@ final class SettingsStore {
     }
 
     var showDebugLabel: Bool { defaults.bool(forKey: "debug.showDebugLabel") }
+
+    /// Lets the window material be swapped without a rebuild, for taste-testing:
+    ///   defaults write studio.visionlab.pomodorotimer debug.windowMaterial -int 7
+    /// 21 = underWindowBackground (default), 7 = sidebar, 13 = hudWindow,
+    /// 12 = windowBackground, 10 = headerView, 6 = popover.
+    static func windowMaterial(_ defaults: UserDefaults = .standard) -> NSVisualEffectView.Material {
+        guard let raw = defaults.object(forKey: "debug.windowMaterial") as? Int,
+              let material = NSVisualEffectView.Material(rawValue: raw) else {
+            return .underWindowBackground
+        }
+        return material
+    }
 
     /// Minutes as the timer should actually interpret them.
     func effectiveDuration(for phase: TimerPhase) -> Double {

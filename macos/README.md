@@ -1,25 +1,11 @@
-# Pomodoro Timer for macOS
+# Pomodoro Timer — macOS
 
-A native macOS (Apple Silicon) port of [WindowsPomodoroTimerApp](https://github.com/alexcaselli/WindowsPomodoroTimerApp),
-originally built with WinUI 3 and .NET 8.
+Native macOS (Apple Silicon) implementation in Swift 6 + SwiftUI/AppKit, ported from the
+[WinUI 3 version](../windows/). See the [root README](../README.md) for what the app does and how
+the two platforms differ.
 
-Written in Swift 6 + SwiftUI/AppKit. **No Xcode required** — it builds with the Command Line
-Tools alone, via Swift Package Manager plus a script that assembles the `.app` bundle.
-
-## Features
-
-* **Work and break timers** — 25 / 3 minutes by default, adjustable.
-* **Activity-aware auto-pause** — the distinguishing feature of the original, ported intact:
-  * during **work**, going idle past 15 s pauses the timer; touching the keyboard resumes it;
-  * during **break** the polarity is **mirrored** — using the machine *pauses* the break, and
-    leaving it alone resumes it. The break only counts while you have actually stepped away.
-  * while auto-paused, a green stopwatch counts how long you have been away.
-* **Unignorable breaks** — when a work session ends, a borderless overlay covers every display,
-  above other apps' full-screen windows, with the Dock and menu bar hidden.
-* **Automatic cycling** — work ends → break starts by itself; break ends → work starts by itself.
-* **Menu bar extra** *(new)* — live `mm:ss` countdown with start/pause, stop, phase switching.
-* **Open at login** *(new)* — via `SMAppService`.
-* **Notifications** — on both work and break completion.
+**No Xcode required** — it builds with the Command Line Tools alone, via Swift Package Manager
+plus a script that assembles the `.app` bundle.
 
 ## Requirements
 
@@ -139,13 +125,19 @@ The break overlay is deliberately *best-effort*, not kiosk mode:
 Four escape hatches are always live at every strictness level: the **Skip break** button, **Esc**,
 **⌘.**, and **⌘Q**.
 
-## Differences from the Windows version
+## Ported from Windows
+
+The timer core is a faithful port: the deadline-based countdown, the State pattern transition
+table, and the mirrored activity-manager polarity all match the C# line for line, with the
+original file names recorded in doc comments so the two trees stay diffable.
+
+Platform replacements:
 
 | Windows | macOS |
 |---|---|
 | `System.Timers.Timer(1000)` + `DispatcherQueue` | one `@MainActor` task sleeping to an absolute instant |
 | Win32 `GetLastInputInfo` | `CGEventSource.secondsSinceLastEventType(.hidSystemState, …)`, no permissions needed |
-| `MicaBackdrop` | `NSVisualEffectView` |
+| `MicaBackdrop` | `NSVisualEffectView`, plus Liquid Glass controls on macOS 26 |
 | `AppWindowPresenterKind.FullScreen` on the main window | a dedicated borderless overlay window per display |
 | WinRT toasts + COM activator | `UNUserNotificationCenter` |
 | `LocalSettings` composite value | `UserDefaults` |
@@ -170,4 +162,4 @@ never assigned or read.
 
 ## License
 
-MIT.
+[MIT](../LICENSE).

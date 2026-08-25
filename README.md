@@ -1,72 +1,89 @@
-# Pomodoro Timer App
+# Pomodoro Timer
 
-## Overview
+A Pomodoro timer that will not let you skip your breaks, with **native apps for Windows and
+macOS** — no shared runtime, no web view. Each platform is written against its own native UI
+framework, from the same behavioural spec.
 
-The Pomodoro Timer App is a productivity tool designed to help users manage their time effectively using the Pomodoro Technique. This technique involves breaking work into intervals, traditionally 25 minutes in length, separated by short breaks. This app is built using WinUI 3 and targets Windows platforms.
+| | Windows | macOS |
+|---|---|---|
+| Framework | WinUI 3 / .NET 8 | SwiftUI + AppKit, Swift 6 |
+| Source | [`windows/`](windows/) | [`macos/`](macos/) |
+| Build docs | [`windows/README.md`](windows/README.md) | [`macos/README.md`](macos/README.md) |
+| Requirements | Windows 10 1809+, x86 / x64 / ARM64 | macOS 14+, Apple Silicon |
 
-## Features
+## What it does
 
-* **Pomodoro Timer:** Set and manage work intervals and breaks.
-* **User Activity Monitoring:** Timers auto-pause and resume based on the user activity status.
-* **Unignorable Breaks:** No more breaks skipping. The app goes into fullscreen mode when you need a break.
-* **Customizable Intervals:** Adjust the length of work sessions and breaks to fit your needs.
-* **Notifications:** Receive notifications when it's time to take a break or start a new work session.
-* **User Interface:** Intuitive and user-friendly interface built with WinUI 3.
-* **MSIX Packaging:** Easy installation and updates through MSIX packaging.
-* **Multi-Platform Support:** Supports x86, x64, and ARM64 architectures.
+* **Work and break timers**, 25 / 3 minutes by default and adjustable.
+* **Activity-aware auto-pause** — the feature the app exists for:
+  * during **work**, going idle past 15 s pauses the timer, and touching the keyboard resumes it;
+  * during **break** the logic is **mirrored** — using the machine *pauses* the break, and
+    leaving it alone resumes it. The break only counts down while you have genuinely stepped away.
+  * while auto-paused, a stopwatch counts how long you have been gone.
+* **Unignorable breaks** — when a work session ends, the app takes over the screen. You can end a
+  break deliberately, but not by ignoring it.
+* **Automatic cycling** — work ends and the break starts by itself; the break ends and work
+  starts by itself.
+* **Notifications** when a timer finishes.
 
-## Project Structure
+### Platform differences
 
-The project is structured as follows:
+Neither app is a port of the other's UI; each follows its own platform's conventions.
 
-* **Assets:** Contains images and icons used in the application.
-    * **ControlIcons:** Icons for play, pause, stop, and disabled stop controls.
-    * Various logo and splash screen images.
-* **Properties:** Contains project properties and settings.
-* **Main Application:** Core logic and UI components of the Pomodoro Timer App.
+| | Windows | macOS |
+|---|---|---|
+| Break takeover | window enters full screen | borderless overlay per display, above other apps' full-screen spaces |
+| Menu bar / tray | — | menu bar extra with a live countdown |
+| Open at login | — | via `SMAppService` |
+| Notification on break end | — | yes |
+| Translucency | Mica backdrop | `NSVisualEffectView`, plus Liquid Glass controls on macOS 26 |
+| Packaging | MSIX | `.app` bundle assembled by a script |
 
-## Build and Publish
+The macOS app also fixes several defects carried by the original Windows implementation — leaked
+activity monitors, undisposed timers, unbounded durations. They are listed in
+[`macos/README.md`](macos/README.md).
 
-The project is configured to build and publish using the following settings:
+## Building
 
-* **Target Framework:** C# .NET 8.0
-* **Output Type:** Windows Executable (WinExe)
-* **Platforms:** x86, x64, ARM64
-* **Runtime Identifiers:** `win-x86`, `win-x64`, `win-arm64`
-* **MSIX Tooling:** Enabled for easy packaging and publishing.
+**Windows** — open `windows/PomodoroTimerApp.sln` in Visual Studio 2022 and build. See
+[`windows/README.md`](windows/README.md).
 
-## Dependencies
+**macOS** — no Xcode required; the Command Line Tools are enough.
 
-The project relies on the following NuGet packages:
+```sh
+cd macos
+./scripts/make_app.sh
+open dist/PomodoroTimer.app
+```
 
-* [Microsoft.Toolkit.Uwp.Notifications](https://www.nuget.org/packages/Microsoft.Toolkit.Uwp.Notifications) (Version 7.1.3)
-* [Microsoft.Windows.SDK.BuildTools](https://www.nuget.org/packages/Microsoft.Windows.SDK.BuildTools) (Version 10.0.26100.1742)
-* [Microsoft.WindowsAppSDK](https://www.nuget.org/packages/Microsoft.WindowsAppSDK) (Version 1.6.250108002)
+See [`macos/README.md`](macos/README.md) for signing, testing and troubleshooting.
 
-## Installation
+## Releases
 
-To install the Pomodoro Timer App, download the MSIX package from the release page and follow the installation instructions.
+Tagged releases are published on the
+[Releases page](https://github.com/alexcaselli/PomodoroTimerApp/releases).
 
-## Usage
+Release notes only, for now — no prebuilt binaries. Neither platform's build is currently signed
+with a distributable certificate:
 
-1.  Launch the Pomodoro Timer App.
-2.  Set your desired work interval and break duration.
-3.  Start the timer and focus on your task.
-4.  Receive notifications when it's time to take a break or start a new session.
-5.  Use the control icons to play, pause, or stop the timer as needed.
+* the macOS app is **ad-hoc signed and not notarized**, so a downloaded copy would be blocked by
+  Gatekeeper and would need clearing by hand in System Settings › Privacy & Security;
+* the Windows MSIX is signed with a **self-signed certificate**, which SmartScreen will warn about.
+
+Building from source avoids both problems entirely, and takes under a minute on either platform.
+Prebuilt binaries will be attached once proper code-signing certificates are in place — a Developer
+ID for macOS, an EV or OV certificate for Windows.
 
 ## Contributing
 
-Contributions are welcome! Please fork the repository and submit a pull request with your changes. Ensure that your code adheres to the project's coding standards and includes appropriate tests.
+Issues and pull requests are welcome. Please keep changes scoped to one platform per pull request
+where possible, and note in the description whether the behaviour should be mirrored on the other.
+
+The macOS project has a headless assertion harness that the build script runs as a gate:
+
+```sh
+cd macos && swift build -c release && ./.build/release/pomodoro-selfcheck
+```
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
-
-## Contact
-
-For any questions or feedback, please open an issue on the GitHub repository.
-
----
-
-Thank you for using the Pomodoro Timer App! We hope it helps you stay productive and manage your time effectively.
+[MIT](LICENSE).

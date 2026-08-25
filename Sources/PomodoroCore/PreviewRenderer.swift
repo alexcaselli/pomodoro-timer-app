@@ -13,6 +13,8 @@ import SwiftUI
 @MainActor
 public enum PreviewRenderer {
     public static func render(to path: String, scale: CGFloat = 2) -> Bool {
+        // Glass is a live compositing effect and rasterises to nothing here.
+        GlassStyling.forceDisabled = true
         let model = AppModel()
         let view = ContentView(model: model)
             .frame(width: 720, height: 508)

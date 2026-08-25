@@ -82,6 +82,22 @@ swift build -c release && ./.build/release/pomodoro-selfcheck --render /tmp/prev
 `NSViewRepresentable` content does not render this way, so the translucent window material comes
 out flat — everything SwiftUI draws itself is faithful.
 
+### Liquid Glass
+
+On macOS 26 the transport buttons and the phase picker are Liquid Glass surfaces
+(`glassEffect`, `GlassEffectContainer`), with the selection a tinted glass pill that morphs
+between segments. The deployment target stays at macOS 14, so every glass surface degrades to
+the material it used before rather than dropping older systems.
+
+`glassEffect` is a live compositing effect: it does not rasterise through `ImageRenderer`, so it
+is the one part of the UI the offscreen renderer cannot check. If it misbehaves, turn it off
+without rebuilding:
+
+```sh
+defaults write studio.visionlab.pomodorotimer debug.disableGlass -bool YES
+defaults delete studio.visionlab.pomodorotimer debug.disableGlass
+```
+
 ### Appearance
 
 The window material can be swapped without rebuilding, to taste:

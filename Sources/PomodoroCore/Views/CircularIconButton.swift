@@ -7,6 +7,9 @@ import SwiftUI
 /// `stop_icon__disabled.png`. SF Symbols replace them: identical shapes, but they adapt to light
 /// and dark appearance (the source PNGs are pure white and would vanish on a light window), and
 /// the disabled look comes from `foregroundStyle` rather than a second asset.
+///
+/// On macOS 26 the circle is a Liquid Glass surface, marked `interactive` so it responds to
+/// press. Older systems keep the plain material.
 struct CircularIconButton: View {
     let icon: ControlIcon
     var isEnabled: Bool = true
@@ -15,19 +18,16 @@ struct CircularIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Circle().fill(.regularMaterial)
-                Circle().stroke(.separator, lineWidth: 1)
-                Image(systemName: icon.symbolName)
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundStyle(isEnabled ? Color.primary : Color.secondary.opacity(0.4))
-                    .frame(width: 32, height: 32)
-            }
-            .frame(width: 64, height: 64)
-            .contentShape(Circle())
+            Image(systemName: icon.symbolName)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(isEnabled ? Color.primary : Color.secondary.opacity(0.4))
+                .frame(width: 64, height: 64)
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .glassSurface(in: Circle(), interactive: isEnabled)
         .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.55)
         .accessibilityLabel(accessibilityLabel)
     }
 }

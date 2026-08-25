@@ -18,29 +18,16 @@ enum TimerPhase: String, CaseIterable, Sendable, Identifiable {
         }
     }
 
-    /// Shown in the segmented picker.
+    /// Outlined SF Symbol, matching the style of the toolbar and settings icons.
     ///
-    /// An emoji rather than an SF Symbol because a macOS segmented `Picker` renders `Label`
-    /// as title-only — the icon simply never appears. Emoji are part of the string, so they
-    /// always draw. This mirrors the WinUI selector, which paired each tab with a glyph
-    /// (Segoe Fluent E770 for work, the Emoji2 smiley for break).
-    var emoji: String {
-        switch self {
-        case .work: "🍅"
-        case .rest: "☕️"
-        }
-    }
-
-    /// Used where a template image is the right idiom: the menu bar item and the break overlay.
+    /// `apple.logo` exists but is the Apple corporate mark — always filled, and wrong as a
+    /// generic "work" glyph — and SF Symbols has no apple-as-fruit, so work uses a laptop.
     var symbolName: String {
         switch self {
-        case .work: "hammer.fill"
-        case .rest: "cup.and.saucer.fill"
+        case .work: "laptopcomputer"
+        case .rest: "cup.and.saucer"
         }
     }
-
-    /// Emoji + title, for the segmented picker.
-    var pickerLabel: String { "\(emoji)  \(title)" }
 
     var other: TimerPhase {
         switch self {

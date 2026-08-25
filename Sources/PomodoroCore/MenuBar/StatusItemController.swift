@@ -71,7 +71,7 @@ final class StatusItemController: NSObject {
     private func refresh() {
         guard let button = item.button else { return }
         button.image = NSImage(
-            systemSymbolName: model.phase == .work ? "hammer.fill" : "cup.and.saucer.fill",
+            systemSymbolName: model.phase.symbolName,
             accessibilityDescription: model.phase.title
         )
         button.image?.isTemplate = true

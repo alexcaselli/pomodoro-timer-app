@@ -14,7 +14,9 @@ struct ContentView: View {
         VStack(spacing: 16) {
             Picker("", selection: phaseBinding) {
                 ForEach(TimerPhase.allCases) { phase in
-                    Text(phase.pickerLabel).tag(phase)
+                    // A macOS segmented Picker renders `Label` as title-only, so the icon
+                    // has to be interpolated into the Text to appear at all.
+                    Text("\(Image(systemName: phase.symbolName))  \(phase.title)").tag(phase)
                 }
             }
             .pickerStyle(.segmented)

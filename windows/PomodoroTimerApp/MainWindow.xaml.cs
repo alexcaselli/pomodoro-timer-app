@@ -70,6 +70,14 @@ namespace PomodoroTimerApp
             _windowHelper = new WindowHelper();
             AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets\\PomodoroTimerAppIcon.ico"));
             AppWindow.Resize(WindowSize);
+
+            // Senza questo i timer da 1 s sopravvivono alla finestra.
+            this.Closed += MainWindow_Closed;
+        }
+
+        private void MainWindow_Closed(object sender, WindowEventArgs args)
+        {
+            DisposeCurrentTimerAndManager();
         }
 
         /// <summary>
@@ -93,7 +101,10 @@ namespace PomodoroTimerApp
             }
             catch (Exception ex)
             {
-                // Handle the exception as needed, for example, log the error or show a message to the user
+                // Senza questi fallback una composite corrotta o parziale lasciava le durate a 0,
+                // cioe' un timer che scade all'istante, per sempre.
+                this.WorkingTimerDurationMinutes = Fallback_WorkingTimerDurationMinutes;
+                this.BreakTimerDurationMinutes = Fallback_BreakTimerDurationMinutes;
                 debugTextBlock.Text = "Error reading timer configurations: " + ex.Message;
             }
         }
@@ -119,10 +130,35 @@ namespace PomodoroTimerApp
         }
 
         /// <summary>
+        /// Smaltisce il timer e il manager uscenti.
+        ///
+        /// Prima non veniva fatto: si scollegava solo l'handler dell'evento, mentre il timer da
+        /// 1 s del PomodoroTimer e quello del monitor di attivita' continuavano a girare. Ogni
+        /// cambio modalita', salvataggio impostazioni o transizione di ciclo ne accumulava
+        /// un'altra coppia, per tutta la vita del processo.
+        /// </summary>
+        private void DisposeCurrentTimerAndManager()
+        {
+            if (_currentTimer != null)
+            {
+                _currentTimer.TimerCompleted -= OnTimerElapsed;
+                _currentTimer.Dispose();
+                _currentTimer = null;
+            }
+
+            if (_userActivityPomodoroTimerManager != null)
+            {
+                _userActivityPomodoroTimerManager.Dispose();
+                _userActivityPomodoroTimerManager = null;
+            }
+        }
+
+        /// <summary>
         /// Initializes the work timer.
         /// </summary>
         private void InitializeWorkTimer()
         {
+            DisposeCurrentTimerAndManager();
             _currentTimer = new WorkTimer(WorkingTimerDurationMinutes, timerTextBlock, primaryButton, stopButton);
             _userActivityPomodoroTimerManager = new UserActivityWorkTimerManager(_currentTimer, inactivityStopwatchTextBlock);
             _currentTimer.TimerCompleted += OnTimerElapsed;
@@ -133,6 +169,7 @@ namespace PomodoroTimerApp
         /// </summary>
         private void InitializeBreakTimer()
         {
+            DisposeCurrentTimerAndManager();
             _currentTimer = new BreakTimer(BreakTimerDurationMinutes, timerTextBlock, primaryButton, stopButton);
             _userActivityPomodoroTimerManager = new UserActivityBreakTimerManager(_currentTimer, inactivityStopwatchTextBlock);
             _currentTimer.TimerCompleted += OnTimerElapsed;
@@ -177,10 +214,19 @@ namespace PomodoroTimerApp
             if (result == ContentDialogResult.Primary)
             {
                 StopAndResetTimer();
-                this.WorkingTimerDurationMinutes = NumberBoxWorkTimerDuration.Value;
-                this.BreakTimerDurationMinutes = NumberBoxBreakTimerDuration.Value;
 
-                WriteAndSetLocalConfigs(NumberBoxWorkTimerDuration.Value, NumberBoxBreakTimerDuration.Value);
+                // NumberBox restituisce NaN per un campo vuoto o non interpretabile.
+                double work = double.IsNaN(NumberBoxWorkTimerDuration.Value)
+                    ? this.WorkingTimerDurationMinutes
+                    : NumberBoxWorkTimerDuration.Value;
+                double rest = double.IsNaN(NumberBoxBreakTimerDuration.Value)
+                    ? this.BreakTimerDurationMinutes
+                    : NumberBoxBreakTimerDuration.Value;
+
+                this.WorkingTimerDurationMinutes = work;
+                this.BreakTimerDurationMinutes = rest;
+
+                WriteAndSetLocalConfigs(work, rest);
 
                 if (_currentTimer is WorkTimer)
                 {
@@ -238,7 +284,7 @@ namespace PomodoroTimerApp
         {
             if (e.TimerType == "Work")
             {
-                ShowToastNotification();
+                ShowToastNotification("Pomodoro Timer", "Work session finished - time for a break.");
 
                 Window _mainWindow = _windowHelper.LaunchAndBringToForegroundIfNeeded(this);
                 _windowHelper.EnterFullScreen(_mainWindow);
@@ -249,6 +295,9 @@ namespace PomodoroTimerApp
             }
             else if (e.TimerType == "Break")
             {
+                // Prima la notifica arrivava solo a fine work, benche' il README ne promettesse due.
+                ShowToastNotification("Pomodoro Timer", "Break over - back to work.");
+
                 _windowHelper.ExitFullScreen(this);
 
                 SelectorBarItemWorkTimer.IsSelected = true;
@@ -262,26 +311,18 @@ namespace PomodoroTimerApp
         /// </summary>
         private void StartPomodoroTimer(String TimerType)
         {
-            if (_currentTimer != null)
-            {
-                _currentTimer.TimerCompleted -= OnTimerElapsed;
-            }
-
             switch (TimerType)
             {
                 case "Work":
-                    _currentTimer = new WorkTimer(WorkingTimerDurationMinutes, timerTextBlock, primaryButton, stopButton);
-                    _userActivityPomodoroTimerManager = new UserActivityWorkTimerManager(_currentTimer, inactivityStopwatchTextBlock);
+                    InitializeWorkTimer();
                     break;
                 case "Break":
-                    _currentTimer = new BreakTimer(BreakTimerDurationMinutes, timerTextBlock, primaryButton, stopButton);
-                    _userActivityPomodoroTimerManager = new UserActivityBreakTimerManager(_currentTimer, inactivityStopwatchTextBlock);
+                    InitializeBreakTimer();
                     break;
                 default:
                     throw new ArgumentException("Invalid timer type");
             }
 
-            _currentTimer.TimerCompleted += OnTimerElapsed;
             _currentTimer.ClickStartPauseResume();
         }
 
@@ -290,15 +331,15 @@ namespace PomodoroTimerApp
         /// <summary>
         /// Shows a toast notification to the user.
         /// </summary>
-        private void ShowToastNotification()
+        private void ShowToastNotification(string title, string body)
         {
             try
             {
                 var content = new ToastContentBuilder()
                     .AddArgument("action", "openWindow")
                     .SetToastScenario(ToastScenario.Reminder)
-                    .AddText("Pomodoro Timer")
-                    .AddText("Il timer di lavoro è scaduto! Clicca qui per avviare il break.")
+                    .AddText(title)
+                    .AddText(body)
                     .GetToastContent();
 
                 var toast = new ToastNotification(content.GetXml());

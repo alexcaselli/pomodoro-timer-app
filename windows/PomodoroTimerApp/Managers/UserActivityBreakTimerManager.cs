@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.UI.Xaml.Controls;
 using PomodoroTimerApp.Monitors;
 using PomodoroTimerApp.PomodoroTimers;
+using Microsoft.UI.Xaml.Controls;
 
 namespace PomodoroTimerApp.Managers
 {
@@ -15,36 +9,31 @@ namespace PomodoroTimerApp.Managers
         private bool _pausedDueToActivity = false;
 
         public UserActivityBreakTimerManager(PomodoroTimer currentTimer, TextBlock inactivityStopwatchTextBlock)
-            : base(currentTimer, inactivityStopwatchTextBlock)
+            : base(currentTimer, inactivityStopwatchTextBlock, new UserActivityMonitor())
         {
-
-            // Registrazione come observer
-            var monitor = new UserActivityMonitor();
-            monitor.AddObserver(this);
+            ObserveMonitor(this);
         }
 
+        // Polarita' invertita rispetto al work: durante la pausa, usare la macchina la sospende,
+        // e lasciarla stare la fa ripartire.
         public override void OnUserActive()
         {
-            // Metti in pausa il timer e segna che è stato fatto per inattività
             bool paused = _currentTimer.ClickActivityPause();
             _pausedDueToActivity = paused || _pausedDueToActivity;
             if (paused)
             {
                 startActivityStopwatch();
             }
-
         }
 
         public override void OnUserInactive()
         {
-            // Se il timer era stato messo in pausa per attività, riavvialo
             if (_pausedDueToActivity)
             {
                 _currentTimer.ClickActivityResume();
                 _pausedDueToActivity = false;
                 stopActivityStopwatch();
             }
-
         }
     }
 }

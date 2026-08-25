@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.UI.Xaml.Controls;
 using PomodoroTimerApp.Monitors;
 using PomodoroTimerApp.PomodoroTimers;
+using Microsoft.UI.Xaml.Controls;
 
 namespace PomodoroTimerApp.Managers
 {
@@ -15,18 +9,15 @@ namespace PomodoroTimerApp.Managers
         private bool _pausedDueToInactivity = false;
 
         public UserActivityWorkTimerManager(PomodoroTimer currentTimer, TextBlock inactivityStopwatchTextBlock)
-            : base(currentTimer, inactivityStopwatchTextBlock)
+            : base(currentTimer, inactivityStopwatchTextBlock, new UserInactivityMonitor())
         {
-
-            // Registrazione come observer
-            var monitor = new UserInactivityMonitor();
-            monitor.AddObserver(this);
+            ObserveMonitor(this);
         }
-
 
         public override void OnUserActive()
         {
-            // Se il timer era stato messo in pausa per inattività, riavvialo
+            // Se il timer era stato messo in pausa per inattivita', riavvialo.
+            // Il flag impedisce di calpestare una pausa decisa dall'utente.
             if (_pausedDueToInactivity)
             {
                 _currentTimer.ClickActivityResume();
@@ -37,7 +28,7 @@ namespace PomodoroTimerApp.Managers
 
         public override void OnUserInactive()
         {
-            // Metti in pausa il timer e segna che è stato fatto per inattività
+            // Metti in pausa il timer e segna che e' stato fatto per inattivita'
             bool paused = _currentTimer.ClickActivityPause();
             _pausedDueToInactivity = paused || _pausedDueToInactivity;
             if (paused)

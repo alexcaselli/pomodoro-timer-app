@@ -46,17 +46,39 @@ MSIX packaging is enabled in the `.csproj`. Note that it currently hardcodes an
 `AppxPackageDir` absolute path and a signing-certificate thumbprint from the original author's
 machine; both need changing before packaging elsewhere.
 
-## Known issues
+## Fixed defects
 
-Several defects here are fixed in the macOS implementation and are worth porting back:
+These were found while porting to macOS and have since been fixed here too:
 
-1. **Leaked activity monitors.** Each manager constructs a monitor into a local variable that is
-   never stored or stopped, while its 1 s timer is already running. Every tab switch, settings
-   save and cycle transition leaks another one, still firing at dead objects.
-2. Old timers are never disposed — only the completion handler is detached.
-3. Timer durations have no minimum or maximum, so `0` and negative values are accepted.
-4. The toast body is mojibake (`"Il timer di lavoro � scaduto!"`) and is the only Italian string
-   in an otherwise English UI.
-5. Notifications fire only at the end of work, though the app advertises both.
-6. The idle stopwatch is shown on auto-pause but only hidden on stop, so it lingers after an
-   auto-resume.
+1. **Leaked activity monitors.** Each manager constructed a monitor into a local variable that
+   was never stored or stopped, while its 1 s timer was already running. Every tab switch,
+   settings save and cycle transition leaked another one, still firing at dead objects. The
+   monitor is now a field, `UserMonitor` is `IDisposable`, and the manager unregisters and
+   disposes it.
+2. **Timers were never disposed** — `StartPomodoroTimer` only detached the completion handler,
+   leaving the 1 s countdown running. `PomodoroTimer` is now `IDisposable`, everything goes
+   through a single `DisposeCurrentTimerAndManager()`, and the window disposes on close.
+3. **Durations had no bounds**, so `0` and negative values were accepted and produced a timer
+   that expired instantly, forever. The `NumberBox` controls now carry `Minimum`/`Maximum` and
+   `ValidationMode`, and an empty field (which yields `NaN`) falls back to the current value.
+4. **A partial or corrupt settings composite left the durations at 0**, because the `catch` in
+   `ReadAndSetLocalConfigs` did not apply the fallbacks. It does now.
+5. **The toast body was mojibake** (`"Il timer di lavoro � scaduto!"`) and the only Italian
+   string in an otherwise English UI.
+6. **Notifications fired only at the end of work**, though the app advertises both. Break
+   completion now notifies as well.
+
+Note on the work duration's `Minimum="5"`: it is a multiple of `SmallChange`, deliberately.
+With `Minimum="1"` and a step of 5, walking down from 25 reaches 5, then 0 clamps to 1, and
+every step up afterwards lands on 6, 11, 16 — the original 25 becomes unreachable. The macOS app
+allows a 1-minute work timer because its stepper snaps to the step's lattice; WinUI's `NumberBox`
+has no equivalent, so the bound is aligned to the step instead.
+
+One original behaviour that *looks* like a bug is kept on purpose, in both apps: the idle
+stopwatch stops counting but stays on screen after an auto-resume, so you can still see how long
+you were away.
+
+## Not verified
+
+The fixes above were written on macOS, where WinUI 3 cannot be compiled. **They have not been
+built or run** — please compile in Visual Studio before trusting them.

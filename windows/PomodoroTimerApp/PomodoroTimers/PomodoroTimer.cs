@@ -16,7 +16,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 namespace PomodoroTimerApp.PomodoroTimers
 {
 
-    internal abstract class PomodoroTimer
+    internal abstract class PomodoroTimer : IDisposable
     {
         protected State _state;
         protected double _timerDurationMinutes;
@@ -44,6 +44,8 @@ namespace PomodoroTimerApp.PomodoroTimers
 
         //Debug
         private IOHelper _ioHelper;
+
+        private bool _disposed;
 
         public PomodoroTimer(double timerDurationMinutes, TextBlock timerTextBlock, Button primaryButton, Button stopButton)
         {
@@ -134,6 +136,12 @@ namespace PomodoroTimerApp.PomodoroTimers
         }
         public void Elapsed(object? sender, ElapsedEventArgs e)
         {
+            // Un tick puo' essere gia' in coda quando il timer viene sostituito e smaltito.
+            if (_disposed)
+            {
+                return;
+            }
+
             _remainingTime = _endTime - DateTime.Now;
             if (_remainingTime <= TimeSpan.Zero)
             {
@@ -174,6 +182,30 @@ namespace PomodoroTimerApp.PomodoroTimers
                 Height = ButtonImageContentSize
             };
         }
+        /// <summary>
+        /// Ferma e rilascia il timer da 1 s e stacca i sottoscrittori.
+        /// Senza questo, un timer sostituito continuava a battere per sempre: StartPomodoroTimer
+        /// si limitava a scollegare l'handler di TimerCompleted.
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+            _disposed = true;
+
+            if (_timer != null)
+            {
+                _timer.Stop();
+                _timer.Elapsed -= Elapsed;
+                _timer.Dispose();
+                _timer = null;
+            }
+            TimerCompleted = null;
+            GC.SuppressFinalize(this);
+        }
+
         private void SetStopButtonImage(bool enabled)
         {
             BitmapImage bitmapImage;

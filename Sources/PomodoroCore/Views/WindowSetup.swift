@@ -3,11 +3,15 @@ import SwiftUI
 
 /// Two things SwiftUI will not do for this window, done through AppKit.
 ///
-/// **Translucency.** An `NSVisualEffectView` with `.behindWindow` blending can only blur what is
-/// behind the window, and a SwiftUI window is opaque with its own solid background painted
-/// underneath — so the material had nothing to sample and flattened to grey. Clearing
-/// `isOpaque` and the background lets the desktop through. The dark appearance is pinned
-/// because the material only reads as dark and see-through in `darkAqua`.
+/// **Translucency.** The window keeps a clear background so the `NSVisualEffectView` behind the
+/// content can blur the desktop, and the dark appearance is pinned because the material only
+/// reads as dark and see-through in `darkAqua`.
+///
+/// `isOpaque` is deliberately left alone. Clearing it is not needed for behind-window vibrancy —
+/// that is how a standard translucent sidebar works in an ordinary opaque window — and it breaks
+/// Liquid Glass: glass refracts whatever sits behind it, and in a non-opaque window the backdrop
+/// is the desktop, which the process cannot sample, so every glass surface degrades to a flat
+/// neutral fill.
 ///
 /// **Initial size.** `.defaultSize(width:height:)` has no effect on this scene — verified by
 /// changing the value and measuring, and `idealWidth`/`idealHeight` on the content are ignored
@@ -45,8 +49,13 @@ struct WindowSetup: NSViewRepresentable {
 
         func configure(_ window: NSWindow?) {
             guard let window else { return }
-            window.isOpaque = false
-            window.backgroundColor = .clear
+            // `.fullSizeContentView` extends the content view over the whole window frame, so
+            // the background — which ignores safe areas to reach the edges — sits on top of the
+            // margins that carry the resize cursors, and the window stops offering to resize.
+            // Nothing here needs content under the titlebar, so drop it.
+            window.styleMask.remove(.fullSizeContentView)
+            // No `backgroundColor = .clear`: the visual effect view already covers the window,
+            // and a clear background on an opaque window is a contradictory state.
             window.titlebarAppearsTransparent = true
             window.appearance = NSAppearance(named: .darkAqua)
 

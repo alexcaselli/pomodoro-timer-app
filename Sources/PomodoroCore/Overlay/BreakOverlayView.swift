@@ -13,7 +13,8 @@ struct BreakOverlayView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 24) {
-                Text("\(Image(systemName: model.phase.symbolName))  \(model.phase.title)")
+                Label(model.phase.title, systemImage: model.phase.symbolName)
+                    .labelStyle(.titleAndIcon)
                     .font(.title2.weight(.medium))
                     .foregroundStyle(.secondary)
 

@@ -6,22 +6,10 @@ struct ContentView: View {
     @Bindable var model: AppModel
     @Environment(\.openSettings) private var openSettings
 
-    private var phaseBinding: Binding<TimerPhase> {
-        Binding(get: { model.phase }, set: { model.select(phase: $0) })
-    }
-
     var body: some View {
         VStack(spacing: 16) {
-            Picker("", selection: phaseBinding) {
-                ForEach(TimerPhase.allCases) { phase in
-                    // A macOS segmented Picker renders `Label` as title-only, so the icon
-                    // has to be interpolated into the Text to appear at all.
-                    Text("\(Image(systemName: phase.symbolName))  \(phase.title)").tag(phase)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 240)
+            PhasePicker(selection: model.phase) { model.select(phase: $0) }
+                .frame(width: 260)
 
             // debugTextBlock: FontSize 18, red, Collapsed at runtime.
             if !model.debugText.isEmpty {
@@ -69,7 +57,7 @@ struct ContentView: View {
             // background so the material below it has something to blur.
             ZStack {
                 VisualEffectBackground(material: SettingsStore.windowMaterial(), blending: .behindWindow)
-                WindowTranslucency()
+                WindowSetup()
             }
             .ignoresSafeArea()
         }

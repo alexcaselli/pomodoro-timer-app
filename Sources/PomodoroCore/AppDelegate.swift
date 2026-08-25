@@ -12,6 +12,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        // The app is deliberately dark regardless of the system theme: the translucent window
+        // material only reads as "dark and see-through" in the dark appearance — in the light
+        // one `underWindowBackground` renders as a flat light grey panel.
+        // Delete this line to follow the system theme instead.
+        NSApp.appearance = NSAppearance(named: .darkAqua)
         // Heal after a crash mid-break: without this the user would be left with no Dock and no
         // menu bar until logout.
         NSApp.presentationOptions = []

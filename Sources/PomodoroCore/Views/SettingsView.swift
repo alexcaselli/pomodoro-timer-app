@@ -24,33 +24,21 @@ struct SettingsView: View {
     private var general: some View {
         Form {
             Section {
-                Stepper(
-                    value: Binding(
-                        get: { model.settings.workingTimerDurationMinutes },
-                        set: { model.settings.setWorkDuration($0); model.settingsChanged() }
-                    ),
-                    in: SettingsStore.workRange,
-                    step: 5      // WinUI SmallChange = 5
-                ) {
-                    LabeledContent("Work duration") {
-                        Text("\(Int(model.settings.workingTimerDurationMinutes)) min")
-                            .monospacedDigit()
-                    }
-                }
+                DurationRow(
+                    title: "Work duration",
+                    value: model.settings.workingTimerDurationMinutes,
+                    range: SettingsStore.workRange,
+                    step: 5,                     // WinUI SmallChange = 5
+                    set: { model.settings.setWorkDuration($0); model.settingsChanged() }
+                )
 
-                Stepper(
-                    value: Binding(
-                        get: { model.settings.breakTimerDurationMinutes },
-                        set: { model.settings.setBreakDuration($0); model.settingsChanged() }
-                    ),
-                    in: SettingsStore.breakRange,
-                    step: 1      // WinUI SmallChange = 1
-                ) {
-                    LabeledContent("Break duration") {
-                        Text("\(Int(model.settings.breakTimerDurationMinutes)) min")
-                            .monospacedDigit()
-                    }
-                }
+                DurationRow(
+                    title: "Break duration",
+                    value: model.settings.breakTimerDurationMinutes,
+                    range: SettingsStore.breakRange,
+                    step: 1,                     // WinUI SmallChange = 1
+                    set: { model.settings.setBreakDuration($0); model.settingsChanged() }
+                )
             } header: {
                 Text("Timers")
             } footer: {
@@ -145,5 +133,63 @@ struct SettingsView: View {
         if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
             NSWorkspace.shared.open(url)
         }
+    }
+}
+
+
+/// A minutes field with a stepper, replacing the WinUI `NumberBox`.
+///
+/// The stepper snaps to the step's lattice (see `DurationStep`) so the range's lower bound
+/// cannot knock the sequence permanently off its multiples. The text field is there so any
+/// value in range stays directly reachable regardless of the step.
+private struct DurationRow: View {
+    let title: String
+    let value: Double
+    let range: ClosedRange<Double>
+    let step: Double
+    let set: (Double) -> Void
+
+    @State private var text: String = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        LabeledContent(title) {
+            HStack(spacing: 6) {
+                TextField("", text: $text)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.trailing)
+                    .monospacedDigit()
+                    .frame(width: 56)
+                    .focused($focused)
+                    .onSubmit(commit)
+                    .onChange(of: focused) { _, isFocused in
+                        if !isFocused { commit() }
+                    }
+
+                Text("min").foregroundStyle(.secondary)
+
+                Stepper(title) {
+                    set(DurationStep.increment(value, step: step, in: range))
+                } onDecrement: {
+                    set(DurationStep.decrement(value, step: step, in: range))
+                }
+                .labelsHidden()
+            }
+        }
+        .onAppear { text = format(value) }
+        .onChange(of: value) { _, new in
+            if !focused { text = format(new) }
+        }
+    }
+
+    private func format(_ v: Double) -> String { String(Int(v.rounded())) }
+
+    private func commit() {
+        guard let typed = Double(text.trimmingCharacters(in: .whitespaces)) else {
+            text = format(value)
+            return
+        }
+        set(typed)                       // the store clamps into range
+        text = format(min(max(typed, range.lowerBound), range.upperBound))
     }
 }

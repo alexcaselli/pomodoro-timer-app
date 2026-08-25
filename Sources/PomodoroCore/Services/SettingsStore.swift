@@ -96,13 +96,15 @@ final class SettingsStore {
     var showDebugLabel: Bool { defaults.bool(forKey: "debug.showDebugLabel") }
 
     /// Lets the window material be swapped without a rebuild, for taste-testing:
-    ///   defaults write studio.visionlab.pomodorotimer debug.windowMaterial -int 7
-    /// 21 = underWindowBackground (default), 7 = sidebar, 13 = hudWindow,
-    /// 12 = windowBackground, 10 = headerView, 6 = popover.
+    ///   defaults write studio.visionlab.pomodorotimer debug.windowMaterial -int 21
+    /// 13 = hudWindow (default), 15 = fullScreenUI, 7 = sidebar, 6 = popover,
+    /// 21 = underWindowBackground, 12 = windowBackground.
     static func windowMaterial(_ defaults: UserDefaults = .standard) -> NSVisualEffectView.Material {
         guard let raw = defaults.object(forKey: "debug.windowMaterial") as? Int,
               let material = NSVisualEffectView.Material(rawValue: raw) else {
-            return .underWindowBackground
+            // hudWindow is the dark, strongly translucent panel material — the one that
+            // actually lets the desktop through rather than sitting on it as a grey slab.
+            return .hudWindow
         }
         return material
     }

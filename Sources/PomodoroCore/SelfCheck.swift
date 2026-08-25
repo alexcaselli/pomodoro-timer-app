@@ -11,6 +11,7 @@ enum SelfCheck {
     nonisolated(unsafe) private static var failures: [String] = []
 
     static func run() async -> Int32 {
+        checkDurationStepping()
         checkTimeFormatting()
         checkStateTable()
         checkSettingsClamping()
@@ -33,6 +34,40 @@ enum SelfCheck {
 
     private static func expectEqual<T: Equatable>(_ a: T, _ b: T, _ label: String) {
         if a != b { failures.append("\(label): expected \(b), got \(a)") }
+    }
+
+    // MARK: - Duration stepping
+
+    private static func checkDurationStepping() {
+        let range: ClosedRange<Double> = 1...180
+        let step: Double = 5
+
+        func up(_ v: Double) -> Double { DurationStep.increment(v, step: step, in: range) }
+        func down(_ v: Double) -> Double { DurationStep.decrement(v, step: step, in: range) }
+
+        expectEqual(down(25), 20, "25 steps down to 20")
+        expectEqual(down(10), 5, "10 steps down to 5")
+        expectEqual(down(5), 1, "5 steps down to the lower bound")
+        expectEqual(down(1), 1, "lower bound holds")
+
+        // The regression: from the clamped floor, incrementing must rejoin the lattice, not
+        // walk 1 -> 6 -> 11 -> 16, which made 25 unreachable.
+        expectEqual(up(1), 5, "1 steps up onto the lattice, not to 6")
+        expectEqual(up(5), 10, "5 steps up to 10")
+        expectEqual(up(20), 25, "20 steps up to 25")
+
+        // A full round trip must return to where it started.
+        var v: Double = 25
+        for _ in 0..<10 { v = down(v) }
+        for _ in 0..<10 { v = up(v) }
+        expect(v >= 25, "round trip returns to at least 25, got \(v)")
+
+        // Off-lattice values snap to the neighbouring multiples.
+        expectEqual(up(23), 25, "23 steps up to 25")
+        expectEqual(down(23), 20, "23 steps down to 20")
+
+        expectEqual(up(180), 180, "upper bound holds")
+        expectEqual(up(178), 180, "clamps to the upper bound")
     }
 
     // MARK: - Formatting

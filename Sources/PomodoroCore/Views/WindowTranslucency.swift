@@ -29,5 +29,6 @@ struct WindowTranslucency: NSViewRepresentable {
         window.isOpaque = false
         window.backgroundColor = .clear
         window.titlebarAppearsTransparent = true
+        window.appearance = NSAppearance(named: .darkAqua)
     }
 }

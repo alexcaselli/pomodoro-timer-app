@@ -77,8 +77,13 @@ defaults write studio.visionlab.pomodorotimer debug.windowMaterial -int 7   # si
 defaults delete studio.visionlab.pomodorotimer debug.windowMaterial        # back to default
 ```
 
-21 = `underWindowBackground` (default), 7 = `sidebar`, 13 = `hudWindow`, 12 = `windowBackground`,
-10 = `headerView`, 6 = `popover`. Restart the app after changing it.
+13 = `hudWindow` (default), 15 = `fullScreenUI`, 7 = `sidebar`, 6 = `popover`,
+21 = `underWindowBackground`, 12 = `windowBackground`. Restart the app after changing it.
+
+The app forces the dark appearance regardless of the system theme — the translucent material
+only reads as dark and see-through in `darkAqua`; in the light appearance it renders as a flat
+grey panel. To follow the system theme instead, delete the `NSApp.appearance` line in
+`AppDelegate.swift`.
 
 For manual testing, `scripts/debug_defaults.sh` reinterprets the duration settings as *seconds*
 and lowers the idle thresholds, so a full cycle takes under a minute:

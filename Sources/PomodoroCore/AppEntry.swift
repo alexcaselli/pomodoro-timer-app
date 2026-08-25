@@ -8,6 +8,12 @@ public enum AppEntry {
         PomodoroTimerScene.main()
     }
 
+    /// Renders the main view offscreen to a PNG, for checking layout without a screen capture.
+    @MainActor
+    public static func renderPreview(to path: String) -> Bool {
+        PreviewRenderer.render(to: path)
+    }
+
     /// Runs the headless assertions and returns a process exit status.
     ///
     /// Stands in for `swift test`: XCTest and swift-testing ship with Xcode, not with the

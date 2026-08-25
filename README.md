@@ -70,6 +70,20 @@ bundle if it fails.
 swift build -c release && ./.build/release/pomodoro-selfcheck
 ```
 
+### Inspecting the UI without a screen capture
+
+`screencapture` needs the Screen Recording permission, which a terminal session often lacks.
+`ImageRenderer` draws the SwiftUI hierarchy offscreen instead, with no permission at all:
+
+```sh
+swift build -c release && ./.build/release/pomodoro-selfcheck --render /tmp/preview.png
+```
+
+`NSViewRepresentable` content does not render this way, so the translucent window material comes
+out flat — everything SwiftUI draws itself is faithful.
+
+### Appearance
+
 The window material can be swapped without rebuilding, to taste:
 
 ```sh
